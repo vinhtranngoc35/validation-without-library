@@ -7,7 +7,8 @@ function createInput(props) {
                 type="${props.type || 'text'}" name="${props.name}"
                 ${props.pattern ? `pattern="${props.pattern}"` : ""} 
                 value="${props.value}"
-                ${props.require ? 'required' : ''} />
+                ${props.require ? 'required' : ''} 
+                />
                 <span class="error ${props.classError}">${props.message}</span>
             </div>`
 }
@@ -15,7 +16,12 @@ function createInput(props) {
 function createSelect(props) {
     let optionsStr = "";
     props.options.forEach(e => {
-        optionsStr += `<option value="${e.value}">${e.name}</option>`;
+
+        if (e.value == props.value) {
+            optionsStr += `<option value="${e.value}" selected>${e.name}</option>`;
+        } else {
+            optionsStr += `<option value="${e.value}">${e.name}</option>`;
+        }
     })
 
     return `<div "${props.classContainer || ''}">
@@ -63,8 +69,14 @@ function renderForm(formBody, inputs) {
     for (let i = 0; i < inputElemments.length; i++) {
         inputElemments[i].onblur = function () {
             onFocus(formBody, i)
+            validateInput(inputs.at(i), inputElemments[i], i)
+        }
+        inputElemments[i].oninput = function () {
+            validateInput(inputs.at(i), inputElemments[i], i)
+
         }
     }
+
 }
 document.addEventListener('invalid', (function () {
     return function (e) {
@@ -73,6 +85,26 @@ document.addEventListener('invalid', (function () {
     };
 })(), true);
 
+function validateInput(inputProp, inputElement, index) {
+    const { validate, messageRequire, message, messageCustom } = inputProp;
+    const error = document.getElementsByClassName('error')[index];
+    const value = inputElement.value.trim();
+
+
+
+    if (inputElement.required && value === '') {
+        error.innerHTML = messageRequire || 'This field is required!';
+        return;
+    }
+    if (!validate) return;
+    const isValid = validate(value);
+    error.innerHTML = isValid ? message : messageCustom;
+}
+function getDataFromForm(event) {
+    event.preventDefault()
+    const data = new FormData(form);
+    return Object.fromEntries(data.entries())
+}
 
 const formBody = document.querySelector('#formBody');
 
@@ -91,7 +123,15 @@ const inputs = [
         type: "email",
         message: "Email invalid",
         require: true,
-        value: ""
+        value: "",
+        validate: (value) => {
+            if (value.length < 3) {
+                return false;
+            }
+            return true;
+        },
+        messageCustom: "Trên 3 ký tự",
+        messageRequire: "Nhập đê"
     },
     {
         label: "Gender",
@@ -104,12 +144,12 @@ const inputs = [
 ];
 renderForm(formBody, inputs);
 
-function getDataFromForm(event) {
+function getDataFromForm(event, formDemo) {
     event.preventDefault()
-    const data = new FormData(form);
+    const data = new FormData(formDemo);
     return Object.fromEntries(data.entries())
 }
 const form = document.querySelector('#form');
 form.onsubmit = (event) => {
-    console.log(getDataFromForm(event));
+    console.log(getDataFromForm(event, form));
 };
